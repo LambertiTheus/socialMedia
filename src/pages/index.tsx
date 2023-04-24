@@ -1,28 +1,47 @@
 /* eslint-disable @typescript-eslint/no-unused-vars */
-import { SignIn, SignInButton, SignOutButton, SignUp, useUser } from "@clerk/nextjs"
+import { SignInButton, useUser } from "@clerk/nextjs"
 import { type NextPage } from "next"
 import Head from "next/head"
-import Link from "next/link"
-import PageHeader from "pageHeader"
-import ErrorMessageComponent from "~/styles/errorMessage"
-import LoadingComponent from "~/styles/loading"
+import Image from "next/image"
+import { useState } from "react"
 
-import { RouterOutputs, api } from "~/utils/api"
+import PageHeader from "../styles/components/PageHeader"
+import ErrorMessageComponent from "../styles/components/ErrorMessage"
+import LoadingComponent from "../styles/components/Loading"
+
+import dayjs from "dayjs"
+import relativeTime from "dayjs/plugin/relativeTime"
+
+import { type RouterOutputs, api } from "~/utils/api"
+
+dayjs.extend(relativeTime)
 
 const CreatePostWizard = () => {
   const { user } = useUser()
-
-  if (!user) return <ErrorMessageComponent />
   console.log(user)
+  const [input, setInput] = useState<string>("")
+
+  const { mutate } = api.posts.create.useMutation()
+
+  if (!user) return null
 
   return (
     <div className="flex w-full gap-3">
-      <img
+      <Image
         src={user.profileImageUrl}
         alt="Profile image"
         className="h-14 w-14 rounded-full"
+        width={56}
+        height={56}
       />
-      <input placeholder="type algo " className="grow bg-transparent outline-none" />
+      <input
+        placeholder="type algo "
+        className="grow bg-transparent outline-none"
+        type="text"
+        value={input}
+        onChange={(e) => setInput(e.target.value)}
+      />
+      <button onClick={() => mutate ({content: input})}>Post</button>
     </div >
   )
 }
@@ -32,30 +51,47 @@ type PostWithUser = RouterOutputs["posts"]["getAll"][number]
 const PostView = (props: PostWithUser) => {
   const { post, author } = props
   return (
-    <div key={post.id} className="border-b border-slate-400 p-4">
-      <img
+    <div key={post.id} className="flex gap-3 border-b  border-slate-400 p-4">
+      <Image
         src={author.profileImageUrl}
-        alt="Profile image"
         className="h-14 w-14 rounded-full"
+        alt={`@${author.username} profile picture`}
+        width={56}
+        height={56}
       />
       <div className="flex flex-col">
-        <div className="flex text-slate-300">
+        <div className="flex gap-1 text-slate-300">
           <span>{`@${author.username}`}</span>
+          <span className="font-thin">{`• ${dayjs(post.createdAt).fromNow()}`}</span>
         </div>
-        <span>{post.content}</span>
+        <span className="text-xl">{post.content}</span>
       </div>
     </div>
   )
 }
 
+const Feed = () => {
+  const { data, isLoading: postsLoading } = api.posts.getAll.useQuery()
+
+  if (postsLoading) return <LoadingComponent />
+
+  if (!data) return <ErrorMessageComponent />
+
+  return (
+    <div className="flex flex-col">
+      {data?.map((fullPost) => (
+        <PostView {...fullPost} key={fullPost.post.id} />
+      ))}
+    </div>
+  )
+}
+
 const Home: NextPage = () => {
-  const user = useUser()
+  const { isLoaded: userLoaded, isSignedIn } = useUser()
 
-  const { data, isLoading } = api.posts.getAll.useQuery()
+  api.posts.getAll.useQuery()
 
-  if (isLoading) return <LoadingComponent />
-
-  if (!data) return <div>Something went wrong</div>
+  if (!userLoaded) return <div />
 
   return (
     <>
@@ -63,18 +99,14 @@ const Home: NextPage = () => {
       <main className="flex h-screen justify-center">
         <div className="h-full w-full border-x border-slate-400 md:max-w-2xl">
           <div className="flex border-b border-slate-400 p-4">
-            {!user.isSignedIn && (
+            {!isSignedIn && (
               <div className="flex justify-center">
                 <SignInButton />
               </div>
             )}
-            {!!user.isSignedIn && <CreatePostWizard />}
+            {isSignedIn && <CreatePostWizard />}
           </div>
-          <div className="flex flex-col">
-            {[...data]?.map((fullPost) => (
-              <PostView {...fullPost} key={fullPost.post.id} />
-            ))}
-          </div>
+          <Feed />
         </div>
       </main >
     </>

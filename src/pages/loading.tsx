@@ -1,8 +1,8 @@
 /* eslint-disable @typescript-eslint/no-unused-vars */
 
 import { type NextPage } from "next"
-import PageHeader from "pageHeader"
-import LoadingComponent from "~/styles/loading"
+import PageHeader from "../styles/components/PageHeader"
+import LoadingComponent from "../styles/components/Loading"
 
 const Loading: NextPage = () => {
 
@@ -10,7 +10,6 @@ const Loading: NextPage = () => {
         <>
             <PageHeader title="Loading test" />
             <LoadingComponent />
-
         </>
     )
 }
