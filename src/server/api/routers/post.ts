@@ -14,7 +14,7 @@ const filterUserForClient = (user: User) => {
 
 const ratelimit = new Ratelimit({
   redis: Redis.fromEnv(),
-  limiter: Ratelimit.slidingWindow(3, "1 m"),
+  limiter: Ratelimit.slidingWindow(1, "1 m"),
   analytics: true
 })
 
@@ -52,7 +52,7 @@ export const postsRouter = createTRPCRouter({
   create: privateProcedure
     .input(
       z.object({
-        content: z.string().min(1).max(280),
+        content: z.string().min(1, "Post must contain at least 1 character").max(2, "Post must contain at most 280 characters"),
       })
     )
     .mutation(async ({ ctx, input }) => {
