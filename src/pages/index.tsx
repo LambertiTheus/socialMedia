@@ -28,6 +28,9 @@ const CreatePostWizard = () => {
     onSuccess: () => {
       setInput("")
       void ctx.posts.getAll.invalidate()
+      toast("Successfully posted",{
+        icon: "🫡👌"
+      })
     },
     onError: (e) => {
       const errorMessage = e.data?.zodError?.fieldErrors.content
@@ -36,7 +39,7 @@ const CreatePostWizard = () => {
       } else {
         toast.error("Failed to post! try again later. ")
       }
-    }
+    },
   })
 
   if (!user) return null

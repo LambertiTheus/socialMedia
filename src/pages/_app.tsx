@@ -8,7 +8,7 @@ import { Toaster } from "react-hot-toast";
 const MyApp: AppType = ({ Component, pageProps }) => {
   return (
     <ClerkProvider {...pageProps}>
-      <Toaster />
+      <Toaster position="top-center" reverseOrder={true} />
       <Component {...pageProps} />
     </ClerkProvider>
   )
