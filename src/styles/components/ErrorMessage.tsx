@@ -8,11 +8,11 @@ const ErrorMessage: React.FC = () => {
         <div className="flex items-center justify-center w-12 h-12 rounded-full bg-red-100">
           <FaExclamationTriangle className="text-red-500 text-3xl flex justify-center" />
         </div>
-        <span className="ml-4 text-2xl font-semibold text-slate-900">
+        <span className="ml-4 text-2xl font-semibold text-slate-50">
           Oops, something went wrong!
         </span>
       </div>
-      <span className="text-lg font-medium text-slate-900">
+      <span className="text-lg font-medium text-slate-50">
         We could not access the data you were looking for.
       </span>
     </div>

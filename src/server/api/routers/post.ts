@@ -5,12 +5,10 @@ import type { User } from "@clerk/nextjs/dist/api"
 import { createTRPCRouter, privateProcedure, publicProcedure } from "~/server/api/trpc"
 import { TRPCError } from "@trpc/server"
 
-import { Analytics, Ratelimit } from "@upstash/ratelimit"
+import { Ratelimit } from "@upstash/ratelimit"
 import { Redis } from "@upstash/redis"
+import { filterUserForClient } from "~/server/helpers/filterUserForClient"
 
-const filterUserForClient = (user: User) => {
-  return { id: user.id, username: user.username, profileImageUrl: user.profileImageUrl }
-}
 
 const ratelimit = new Ratelimit({
   redis: Redis.fromEnv(),
@@ -52,7 +50,7 @@ export const postsRouter = createTRPCRouter({
   create: privateProcedure
     .input(
       z.object({
-        content: z.string().min(1, "Post must contain at least 1 character").max(280, "Post must contain at most 280 characters"),
+        content: z.string().max(280, "Post must contain at most 280 characters"),
       })
     )
     .mutation(async ({ ctx, input }) => {
@@ -60,14 +58,14 @@ export const postsRouter = createTRPCRouter({
 
       const { success } = await ratelimit.limit(authorId)
 
-      if (!success) throw new TRPCError({code: "TOO_MANY_REQUESTS"})
+      if (!success) throw new TRPCError({ code: "TOO_MANY_REQUESTS" })
 
-        const post = await ctx.prisma.post.create({
-          data: {
-            authorId,
-            content: input.content
-          },
-        })
+      const post = await ctx.prisma.post.create({
+        data: {
+          authorId,
+          content: input.content
+        },
+      })
 
       return post
     }),
