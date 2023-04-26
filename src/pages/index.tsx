@@ -8,6 +8,7 @@ import { useState } from "react"
 import PageHeader from "../styles/components/PageHeader"
 import ErrorMessageComponent from "../styles/components/ErrorMessage"
 import LoadingComponent from "../styles/components/Loading"
+import { LoadingPost } from "~/styles/components/LoadingPost"
 
 import dayjs from "dayjs"
 import relativeTime from "dayjs/plugin/relativeTime"
@@ -28,7 +29,7 @@ const CreatePostWizard = () => {
     onSuccess: () => {
       setInput("")
       void ctx.posts.getAll.invalidate()
-      toast("Successfully posted",{
+      toast("Successfully posted", {
         icon: "🫡👌"
       })
     },
@@ -59,9 +60,27 @@ const CreatePostWizard = () => {
         type="text"
         value={input}
         onChange={(e) => setInput(e.target.value)}
+
+        onKeyDown={(e) => {
+          if (e.key === "Enter") {
+            e.preventDefault()
+            if (input !== "") {
+              mutate({ content: input })
+            }
+          }
+        }}
+        
+        disabled={isPosting}
       />
-      <button onClick={() => mutate({ content: input })}>Post</button>
-    </div >
+      {input !== "" && !isPosting && (
+        <button onClick={() => mutate({ content: input })}>Post</button>
+      )}
+      {isPosting && (
+        <div className="flex items-center justify-center">
+          <LoadingPost />
+        </div>
+      )}
+    </div>
   )
 }
 
