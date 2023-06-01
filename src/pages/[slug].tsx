@@ -1,19 +1,32 @@
 import type { NextPage, GetStaticProps } from "next"
 
-import PageHeader from "../styles/components/PageHeader"
-
 import { api } from "~/utils/api"
-import { appRouter } from "~/server/api/root"
-import { createServerSideHelpers } from "@trpc/react-query/server"
-import { prisma } from "~/server/db"
-import superjson from "superjson"
-import { PageLayout } from "~/styles/components/layout"
 
+import PageHeader from "../styles/components/PageHeader"
+import { PageLayout } from "~/styles/components/layout"
+import LoadingComponent from "~/styles/components/Loading"
+import { PostView } from "~/styles/components/PostView"
+import { generateSSGHelper } from "~/server/helpers/ssgHelper"
+
+const ProfileFeed = (props: { userId: string }) => {
+  const { data, isLoading } = api.posts.getPostsByUserId.useQuery({ userId: props.userId })
+
+  if (isLoading) return <LoadingComponent />
+
+  if (!data || data.length === 0) return <div>User has not posted</div>
+
+  return (
+    <div className="flex flex-col">
+      {data.map((fullPost) => (
+        <PostView {...fullPost} key={fullPost.post.id} />
+      ))}
+    </div>
+  )
+}
 
 const ProfilePage: NextPage<{ username: string }> = ({ username }) => {
 
   const { data } = api.profile.getUserByUsername.useQuery({ username })
-
 
   if (!data) return <div>404</div>
 
@@ -25,25 +38,22 @@ const ProfilePage: NextPage<{ username: string }> = ({ username }) => {
           <Image
             src={data.profileImageUrl}
             alt={`${data.name ?? ""}'s profile pic`}
-            width={96}
-            height={96}
+            width={128}
+            height={128}
             className="absolute bottom-0 left-0 -mb-[64px] rounded-full ml-4 border-4 border-black bg-black"
-            />
-            </div>
-            <div className="h-[64px]"></div>
-          <div className="p-4 text-2xl font-bold">{`@${data.name  ?? ""}`}</div>
-          <div className="w-full border-b border-slate-400"/>
+          />
+        </div>
+        <div className="h-[64px]"></div>
+        <div className="p-4 text-2xl font-bold">{`@${data.name ?? ""}`}</div>
+        <div className="w-full border-b border-slate-400" />
+        <ProfileFeed userId={data.id}
       </PageLayout>
-    </> 
+    </>
   )
 }
 
 export const getStaticProps: GetStaticProps = async (context) => {
-  const ssg = createServerSideHelpers({
-    router: appRouter,
-    ctx: { prisma, userId: null },
-    transformer: superjson,
-  })
+  const ssg = generateSSGHelper()
 
   const slug = context.params?.slug
 
