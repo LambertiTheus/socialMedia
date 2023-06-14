@@ -1,12 +1,12 @@
 import type { NextPage, GetStaticProps } from "next"
-
 import { api } from "~/utils/api"
-
-import PageHeader from "../styles/components/PageHeader"
 import { PageLayout } from "~/styles/components/layout"
 import LoadingComponent from "~/styles/components/Loading"
 import { PostView } from "~/styles/components/PostView"
 import { generateSSGHelper } from "~/server/helpers/ssgHelper"
+import Head from "next/head"
+import Image from "next/image"
+import { HomeButton } from "~/styles/components/HomeButton"
 
 const ProfileFeed = (props: { userId: string }) => {
   const { data, isLoading } = api.posts.getPostsByUserId.useQuery({ userId: props.userId })
@@ -16,7 +16,7 @@ const ProfileFeed = (props: { userId: string }) => {
   if (!data || data.length === 0) return <div>User has not posted</div>
 
   return (
-    <div className="flex flex-col">
+    <div className="flex flex-col overflow-y-auto">
       {data.map((fullPost) => (
         <PostView {...fullPost} key={fullPost.post.id} />
       ))}
@@ -32,23 +32,27 @@ const ProfilePage: NextPage<{ username: string }> = ({ username }) => {
 
   return (
     <>
-      <PageHeader title={data.name} />
+      <HomeButton />
+      <Head>
+        <title>{data.username ?? data.externalUsername}</title>
+      </Head>
       <PageLayout>
         <div className="relative h-36 bg-slate-600">
           <Image
             src={data.profileImageUrl}
-            alt={`${data.name ?? ""}'s profile pic`}
+            alt={`${data.username ?? data.externalUsername ?? "unknown"}'s profile pic`}
             width={128}
             height={128}
             className="absolute bottom-0 left-0 -mb-[64px] rounded-full ml-4 border-4 border-black bg-black"
           />
         </div>
         <div className="h-[64px]"></div>
-        <div className="p-4 text-2xl font-bold">{`@${data.name ?? ""}`}</div>
+        <div className="p-4 text-2xl font-bold">{`@${data.username ?? data.externalUsername ?? "unknown"}`}</div>
         <div className="w-full border-b border-slate-400" />
-        <ProfileFeed userId={data.id}
+        <ProfileFeed userId={data.id} />
       </PageLayout>
     </>
+
   )
 }
 
@@ -67,7 +71,6 @@ export const getStaticProps: GetStaticProps = async (context) => {
     props: {
       trpcState: ssg.dehydrate(),
       username,
-
     }
   }
 }

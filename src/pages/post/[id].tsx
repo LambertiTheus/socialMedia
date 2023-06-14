@@ -4,9 +4,9 @@ import { api } from "~/utils/api"
 
 import PageHeader from "~/styles/components/PageHeader"
 import { PageLayout } from "~/styles/components/layout"
-import LoadingComponent from "~/styles/components/Loading"
 import { PostView } from "~/styles/components/PostView"
 import { generateSSGHelper } from "~/server/helpers/ssgHelper"
+import { HomeButton } from "~/styles/components/HomeButton"
 
 
 const SinglePostPage: NextPage<{ id: string }> = ({ id }) => {
@@ -19,10 +19,11 @@ const SinglePostPage: NextPage<{ id: string }> = ({ id }) => {
 
   return (
     <>
-      <PageHeader title={`${data.post.content} - @${data.author.username}`} />
+      <HomeButton />
+        <PageHeader title={`${data.post.content} - @${data.author.username}`} />
       <PageLayout>
         <PostView {...data} />
-      </PageLayout>
+      </PageLayout >
     </>
   )
 }
@@ -35,13 +36,12 @@ export const getStaticProps: GetStaticProps = async (context) => {
   if (typeof id !== "string") throw new Error("no id")
 
 
-  await ssg.posts.getById.prefetch({id})
+  await ssg.posts.getById.prefetch({ id })
 
   return {
     props: {
       trpcState: ssg.dehydrate(),
       id,
-
     }
   }
 }

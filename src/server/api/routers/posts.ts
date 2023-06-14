@@ -1,18 +1,19 @@
+import { clerkClient } from "@clerk/nextjs/server"
+import { TRPCError } from "@trpc/server"
 import { z } from "zod"
 
 import { createTRPCRouter, privateProcedure, publicProcedure } from "~/server/api/trpc"
-import { TRPCError } from "@trpc/server"
 
 import { Ratelimit } from "@upstash/ratelimit"
 import { Redis } from "@upstash/redis"
 import type { Post } from "@prisma/client"
-import { clerkClient } from "@clerk/nextjs/server"
 import { filterUserForClient } from "~/server/helpers/filterUserForClient"
 
 const addUserDataToPosts = async (posts: Post[]) => {
+  const userId = posts.map((post) => post.authorId)
   const users = (
     await clerkClient.users.getUserList({
-      userId: posts.map((post) => post.authorId),
+      userId: userId,
       limit: 100,
     })
   ).map(filterUserForClient)
@@ -20,17 +21,28 @@ const addUserDataToPosts = async (posts: Post[]) => {
   return posts.map((post) => {
     const author = users.find((user) => user.id === post.authorId)
 
-    if (!author || author.username)
+    if (!author) {
+      console.error("AUTHOR NOT FOUND", post)
       throw new TRPCError({
         code: "INTERNAL_SERVER_ERROR",
-        message: "Author for post not found"
+        message: `Author for post not found. POST ID: ${post.id}, USER ID: ${post.authorId}`,
       })
+    }
+    if (!author.username) {
+      if (!author.externalUsername) {
+        throw new TRPCError({
+          code: "INTERNAL_SERVER_ERROR",
+          message: `Author has no GitHub Account: ${author.id}`,
+        })
+      }
+      author.username = author.externalUsername
+    }
 
     return {
       post,
       author: {
         ...author,
-        username: author.username
+        username: author.username ?? "(username not found)"
       }
     }
   })
@@ -47,7 +59,7 @@ export const postsRouter = createTRPCRouter({
   getById: publicProcedure
     .input(z.object({ id: z.string() }))
     .query(async ({ ctx, input }) => {
-      const post = ctx.prisma.post.findUnique({
+      const post = await ctx.prisma.post.findUnique({
         where: { id: input.id }
       })
 
@@ -72,13 +84,14 @@ export const postsRouter = createTRPCRouter({
       })
     )
     .query(({ ctx, input }) =>
-      ctx.prisma.post.findMany({
-        where: {
-          authorId: input.userId,
-        },
-        take: 100,
-        orderBy: [{ createdAt: "desc" }],
-      })
+      ctx.prisma.post
+        .findMany({
+          where: {
+            authorId: input.userId,
+          },
+          take: 100,
+          orderBy: [{ createdAt: "desc" }],
+        })
         .then(addUserDataToPosts)
     ),
 

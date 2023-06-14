@@ -1,22 +1,16 @@
-import { SignInButton, useUser } from "@clerk/nextjs"
+import { SignInButton, UserButton, useUser } from "@clerk/nextjs"
 import { type NextPage } from "next"
-import Image from "next/image"
 import { useState } from "react"
 
-import PageHeader from "../styles/components/PageHeader"
+import { api } from "~/utils/api"
+
+import toast from "react-hot-toast"
+
 import ErrorMessageComponent from "../styles/components/ErrorMessage"
 import LoadingComponent from "../styles/components/Loading"
 import { LoadingPost } from "~/styles/components/LoadingPost"
-
-import dayjs from "dayjs"
-import relativeTime from "dayjs/plugin/relativeTime"
-import toast from "react-hot-toast"
-
-import { api } from "~/utils/api"
 import { PageLayout } from "~/styles/components/layout"
 import { PostView } from "~/styles/components/PostView"
-
-dayjs.extend(relativeTime)
 
 const CreatePostWizard = () => {
   const { user } = useUser()
@@ -30,7 +24,7 @@ const CreatePostWizard = () => {
       setInput("")
       void ctx.posts.getAll.invalidate()
       toast("Successfully posted", {
-        icon: "🫡👌"
+        icon: "🫡"
       })
     },
     onError: (e) => {
@@ -38,7 +32,7 @@ const CreatePostWizard = () => {
       if (errorMessage && errorMessage[0]) {
         toast.error(errorMessage[0])
       } else {
-        toast.error("Failed to post! try again later. ")
+        toast.error("Failed to post! Please try again later. ")
       }
     },
   })
@@ -47,16 +41,17 @@ const CreatePostWizard = () => {
 
   return (
     <div className="flex w-full gap-3">
-      <Image
-        src={user.profileImageUrl}
-        alt="Profile image"
-        className="h-14 w-14 rounded-full"
-        width={56}
-        height={56}
-      />
+      <UserButton appearance={{
+        elements: {
+          userButtonAvatarBox: {
+            width: 56,
+            height: 56
+          }
+        }
+      }} />
       <input
-        placeholder="type algo "
-        className="grow bg-transparent outline-none"
+        placeholder="type here!"
+        className="grow bg-transparent outline-none outline-wrap"
         type="text"
         value={input}
         onChange={(e) => setInput(e.target.value)}
@@ -85,7 +80,6 @@ const CreatePostWizard = () => {
 }
 
 
-
 const Feed = () => {
   const { data, isLoading: postsLoading } = api.posts.getAll.useQuery()
 
@@ -94,8 +88,8 @@ const Feed = () => {
   if (!data) return <ErrorMessageComponent />
 
   return (
-    <div className="flex flex-col">
-      {data?.map((fullPost) => (
+    <div className="flex flex-col overflow-y-auto">
+      {[...data].map((fullPost) => (
         <PostView {...fullPost} key={fullPost.post.id} />
       ))}
     </div>
@@ -111,20 +105,24 @@ const Home: NextPage = () => {
   if (!userLoaded) return <div />
 
   return (
-    <>
-      <PageHeader title="home" />
-      <PageLayout>
-        <div className="flex border-b border-slate-400 p-4">
+    <PageLayout>
+      <div className="flex flex-col h-screen bg-blue-50 text-black">
+        <header className="flex items-center justify-between px-4 py-2 border-b border-blue-200 bg-white shadow-md">
           {!isSignedIn && (
             <div className="flex justify-center">
               <SignInButton />
             </div>
           )}
           {isSignedIn && <CreatePostWizard />}
-        </div>
-        <Feed />
-      </PageLayout>
-    </>
+        </header>
+
+        <main className="flex-1 overflow-y-scroll p-4 bg-blue-50">
+          <div className="max-w-2xl mx-auto bg-white rounded-xl shadow-md overflow-hidden">
+            <Feed />
+          </div>
+        </main>
+      </div>
+    </PageLayout>
   )
 }
 
